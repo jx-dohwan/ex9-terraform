@@ -1,0 +1,42 @@
+name: GitOps ArgoCD CI/CD Pipeline
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  build-and-update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # runs-on에 정의된 서버가 깃에 업로드 파일을 수정할 수 있도록 함 즉 디플로이먼트의 버전명 변경
+    steps:
+      - name: 소스코드 체크아웃 # 깃에 push된 파일을 서버로 복사
+        uses: actions/checkout@v4
+
+      - name: Docker Hub 로그인
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Docker 이미지 빌드 및 푸시
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./nginx/Dockerfile # Dockerfile의 경로 및 파일명
+          push: true
+          # (중요) 이미지명 정의(태그 자동생성)
+          tags: jx7789/nginx:${{github.sha}}
+      
+      - name: 쿠버네티스 파일의 이미지 태그 갱신 및 Git push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          sed -i 's|image: jx7789/nginx:.*|image: jx7789/nginx:${{github.sha}}|g' k8s/deployment.yaml
+
+          git add ./k8s/deployment.yaml
+          git commit -m "Deployment file tag Update(${{github.sha}})"
+          git push
+
+

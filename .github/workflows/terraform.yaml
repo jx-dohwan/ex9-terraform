@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-  pull:
+  pull_request: # 'pull:'은 지원하지 않는 문법이므로 'pull_request:'로 수정
     branches:
       - main
-    #     paths: # 배포 기준이 될 파일이 있는 위치(변경된 파일 기준)
-    #       - 'infra/project/**'
+    #   paths: # 배포 기준이 될 파일이 있는 위치(변경된 파일 기준)
+    #     - 'infra/project/**'
     # pull_request:
     #   branches: [main]
     #   paths:
@@ -31,8 +31,9 @@ jobs:
       # 3-1. 소스 코드 체크아웃 (체크아웃: 저장소의 파일을 러너로 다운로드)
       - name: Checkout Repository
         uses: actions/checkout@v4
+
       # 3-2. Terraform CLI 도구 설치
-      - name: Setup Terrform
+      - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.8.x
@@ -43,10 +44,9 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-          audience: sts.amazonaws.com  # AWS접속에 사용될 토큰 발급 대상 지정
-          output-env-credentials: true # 깃허브 액션의 환경 변수 자동 저장
+          # audience: sts.amazonaws.com # IAM Access Key 방식에서는 불필요 (OIDC 역할 전환 전용 옵션)
+          # output-env-credentials: true
 
-      
       # 3-4 테라폼 초기화 (provider 다운로드)
       - name: Terraform Init
         run: terraform init
@@ -57,14 +57,14 @@ jobs:
       
       # 3-6. 변경 사항 미리보기(Plan)
       - name: Terraform Plan
-        run: terraform plan-no-color # 브라우저 출력시 색코드로 인한 글짜 깨짐 방지
+        run: terraform plan -no-color # 띄어쓰기 수정 (plan-no-color -> plan -no-color)
         continue-on-error: false # Error 발생시 계속 진행(true), 종료(false)
-
 
       # 컬러를 포함할 경우 색상코드를 텍스트로 표현해 깨져서 출력 되는것을 방지
       # 3-7. 인프라 반영 (apply) or main 브랜치에 푸시(Merge)될 때만 실행
       - name: Terraform Apply & Destroy
-        run: terraform apply --auto-approve
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' # PR 검증 단계에서 apply가 자동 실행되는 것 방지
+        run: terraform apply -auto-approve # 하이픈 수정 (--auto-approve -> -auto-approve)
 
 # 4. Terraform CLI 도구 설치
 

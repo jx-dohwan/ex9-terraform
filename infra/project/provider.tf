@@ -7,14 +7,14 @@ terraform {
     }
   }
 
-  backend "s3" {
-    bucket         = "std04-terraform-state-bucket-20260917"
-    key            = "terraform/cicd/terraform.tfstate"
-    region         = "ap-northeast-2"
-    dynamodb_table = "std04-lock-table" # 동시 실행 방지(선택 사항이나 권장)
-    encrypt        = true
+  #   backend "s3" {
+  #     bucket         = "std04-terraform-state-bucket-20260917"
+  #     key            = "terraform/cicd/terraform.tfstate"
+  #     region         = "ap-northeast-2"
+  #     dynamodb_table = "std04-lock-table" # 동시 실행 방지(선택 사항이나 권장)
+  #     encrypt        = true
 
-  }
+  #   }
 }
 
 provider "aws" {
